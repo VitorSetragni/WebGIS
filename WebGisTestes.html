@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>WebGIS - Google Maps API</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>WebGIS - Busca Avançada</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    html, body {
+<style>
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
-  background: #e9edf3;
 }
 
 #container {
@@ -19,247 +18,166 @@
   height: 100%;
 }
 
-/* ===== Muda de cor ===== */
+/* SIDEBAR */
 #sidebar {
   width: 300px;
   padding: 22px;
   color: white;
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
-
-  background: linear-gradient(
-    45deg,
-    #0ba1cb,
-    #09e014,
-    #540798,
-    #b91111
-  );
+  background: linear-gradient(45deg,#0ba1cb,#09e014,#540798,#b91111);
   background-size: 400% 400%;
   animation: gradientMove 6s ease infinite;
-
-  box-shadow: 2px 0 15px rgba(0,0,0,0.25);
 }
 
-/* efeito suave */
-#sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(6px);
-  z-index: -1;
-}
-
-/* animação*/
 @keyframes gradientMove {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-#sidebar h3 {
-  margin: 0 0 25px;
-  font-size: 18px;
-  font-weight: 600;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-  padding-bottom: 10px;
-}
+#sidebar h3 { margin-bottom: 20px; }
 
-/* SELECT */
-#sidebar select {
+#sidebar select, #sidebar button {
   width: 100%;
   padding: 12px;
-  border-radius: 10px;
-  border: none;
-  font-size: 14px;
-  outline: none;
   margin-bottom: 15px;
+  border-radius: 10px;
+  border: none;
 }
 
-/* BOTÃO */
 #sidebar button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
   background: rgba(255,255,255,0.25);
   color: white;
-  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background 0.3s, transform 0.15s;
 }
 
-#sidebar button:hover {
-  background: rgba(255,255,255,0.35);
-}
-
-#sidebar button:active {
-  transform: scale(0.96);
-}
-
-/* MAPA */
-#map {
-  flex: 1;
-}
-  </style>
+#map { flex: 1; }
+</style>
 </head>
+
 <body>
 
-  <div id="container">
-
-    <!-- SIDEBAR -->
-    <div id="sidebar">
-      <h3>📍 Buscar locais próximos</h3>
-
-      <select id="tipo">
-        <option value="restaurant">🍽 Restaurantes</option>
-        <option value="gym">🏋️ Academias</option>
-        <option value="school">🏫 Escolas</option>
-        <option value="hospital">🏥 Hospitais</option>
-        <option value="pharmacy">💊 Farmácias</option>
-      </select>
-
-      <button onclick="buscarLocais()">Buscar</button>
-    </div>
-
-    <!-- MAPA -->
-    <div id="map"></div>
-
+<div id="container">
+  <div id="sidebar">
+    <h3>📍 Buscar locais</h3>
+    <select id="tipo">
+      <option value="restaurant">🍽 Restaurantes</option>
+      <option value="gym">🏋️ Academias</option>
+      <option value="pharmacy">💊 Farmácias</option>
+      <option value="hospital">🏥 Hospitais</option>
+      <option value="store">🏬 Lojas</option>
+      <option value="bus_station">🚌 Pontos de ônibus</option>
+    </select>
+    <button onclick="buscar()">Buscar</button>
   </div>
+  <div id="map"></div>
+</div>
 
-  <!-- GOOGLE MAPS + PLACES -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDhOfl-4jQOTDMwsTbDzWGcxfBayJQyIM&libraries=places&callback=initMap"
-    async
-    defer>
-  </script>
+<script>
+let map, service;
+let markers = [];
+let circle = null;
 
-  <script>
-    let map;
-    let service;
-    let markers = [];
+/* CONFIGURAÇÃO ESPECÍFICA POR CATEGORIA */
+const CONFIG = {
+  restaurant: {
+    primary: { type: "restaurant" },
+    fallback: { keyword: "restaurante lanchonete" }
+  },
+  gym: {
+    primary: { type: "gym" },
+    fallback: { keyword: "academia crossfit musculação" }
+  },
+  pharmacy: {
+    primary: { type: "pharmacy" },
+    fallback: { keyword: "farmácia drogaria" }
+  },
+  hospital: {
+    primary: { type: "hospital" },
+    fallback: { keyword: "hospital pronto atendimento clínica" }
+  },
+  store: {
+    primary: { type: "store" },
+    fallback: { keyword: "loja papelaria comércio" }
+  },
+  bus_station: {
+    primary: { type: "bus_station" },
+    fallback: { keyword: "ponto de ônibus" }
+  }
+};
 
-    function initMap() {
+function initMap() {
+  const centro = { lat: -19.922731, lng: -43.992302 };
 
-      const centroPadrao = {
-        lat: -19.922269,
-        lng: -43.99264
-      };
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: centro,
+    zoom: 16
+  });
 
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: centroPadrao,
-        zoom: 14,
-        mapTypeId: "roadmap"
-      });
+  service = new google.maps.places.PlacesService(map);
+}
 
-      service = new google.maps.places.PlacesService(map);
+function limpar() {
+  markers.forEach(m => m.setMap(null));
+  markers = [];
+  if (circle) circle.setMap(null);
+}
 
-      const infoWindow = new google.maps.InfoWindow();
+function addMarker(place) {
+  if (markers.some(m => m.place_id === place.place_id)) return;
 
-      // GEOLOCALIZAÇÃO
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const posUsuario = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
+  const marker = new google.maps.Marker({
+    map,
+    position: place.geometry.location,
+    title: place.name
+  });
 
-            map.setCenter(posUsuario);
+  marker.place_id = place.place_id;
+  markers.push(marker);
+}
 
-            const markerUsuario = new google.maps.Marker({
-              position: posUsuario,
-              map: map,
-              title: "Sua localização"
-            });
+function buscar() {
+  limpar();
 
-            infoWindow.setContent("📍 Você está aqui");
-            infoWindow.open(map, markerUsuario);
-          },
-          () => {
-            infoWindow.setPosition(centroPadrao);
-            infoWindow.setContent("Não foi possível obter sua localização");
-            infoWindow.open(map);
-          }
-        );
-      }
+  const tipo = document.getElementById("tipo").value;
+  const conf = CONFIG[tipo];
+  const centro = map.getCenter();
 
-      // GEOJSON
-      const geojson = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [-43.99264, -19.922269]
-            },
-            properties: {
-              name: "Ponto GeoJSON"
-            }
-          }
-        ]
-      };
+  circle = new google.maps.Circle({
+    map,
+    center: centro,
+    radius: 800,
+    fillOpacity: 0.1,
+    strokeOpacity: 0.6
+  });
 
-      map.data.addGeoJson(geojson);
-
-      map.data.setStyle({
-        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-      });
-
-      map.data.addListener("click", (event) => {
-        alert("GeoJSON: " + event.feature.getProperty("name"));
-      });
+  //  BUSCA PRINCIPAL 
+  service.nearbySearch({
+    location: centro,
+    rankBy: google.maps.places.RankBy.DISTANCE,
+    type: conf.primary.type
+  }, (results, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK) {
+      results.forEach(addMarker);
     }
+  });
 
-    function buscarLocais() {
-
-      // Limpa marcadores antigos
-      markers.forEach(marker => marker.setMap(null));
-      markers = [];
-
-      const tipo = document.getElementById("tipo").value;
-
-      const request = {
-        location: map.getCenter(),
-        radius: 3000,
-        type: [tipo]
-      };
-
-      service.nearbySearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-
-          results.forEach(place => {
-
-            const marker = new google.maps.Marker({
-              map,
-              position: place.geometry.location,
-              title: place.name
-            });
-
-            const info = new google.maps.InfoWindow({
-              content: `<strong>${place.name}</strong><br>${place.vicinity || ""}`
-            });
-
-            marker.addListener("click", () => {
-              info.open(map, marker);
-            });
-
-            markers.push(marker);
-          });
-        }
-      });
+  //  FALLBACK 
+  service.nearbySearch({
+    location: centro,
+    rankBy: google.maps.places.RankBy.DISTANCE,
+    keyword: conf.fallback.keyword
+  }, (results, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK) {
+      results.forEach(addMarker);
     }
-  </script>
+  });
+}
+</script>
+
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDhOfl-4jQOTDMwsTbDzWGcxfBayJQyIM&libraries=places&callback=initMap">
+</script>
 
 </body>
 </html>
