@@ -7,66 +7,136 @@
 
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-    }
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: #e9edf3;
+}
 
-    #container {
-      display: flex;
-      height: 100%;
-    }
+#container {
+  display: flex;
+  height: 100%;
+}
 
-    #sidebar {
-      width: 260px;
-      padding: 15px;
-      background: #f5f5f5;
-      border-right: 1px solid #ccc;
-    }
+/* ===== Muda de cor ===== */
+#sidebar {
+  width: 300px;
+  padding: 22px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
 
-    #sidebar h3 {
-      margin-top: 0;
-    }
+  background: linear-gradient(
+    45deg,
+    #0ba1cb,
+    #17a41e,
+    #cbb811,
+    #b91111
+  );
+  background-size: 400% 400%;
+  animation: gradientMove 2s ease infinite;
 
-    #sidebar select,
-    #sidebar button {
-      width: 100%;
-      padding: 8px;
-      margin-top: 10px;
-      font-size: 14px;
-    }
+  box-shadow: 2px 0 15px rgba(0,0,0,0.25);
+}
 
-    #map {
-      flex: 1;
-    }
+/* efeito suave */
+#sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  z-index: -1;
+}
+
+/* animação*/
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+#sidebar h3 {
+  margin: 0 0 25px;
+  font-size: 18px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  padding-bottom: 10px;
+}
+
+/* SELECT */
+#sidebar select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 15px;
+}
+
+/* BOTÃO */
+#sidebar button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.25);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.3s, transform 0.15s;
+}
+
+#sidebar button:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+#sidebar button:active {
+  transform: scale(0.96);
+}
+
+/* MAPA */
+#map {
+  flex: 1;
+}
   </style>
 </head>
 <body>
 
   <div id="container">
 
-    <!-- Barra lateral -->
+    <!-- SIDEBAR -->
     <div id="sidebar">
-      <h3>Pesquisar locais</h3>
+      <h3>📍 Buscar locais próximos</h3>
 
       <select id="tipo">
-        <option value="restaurant">Restaurantes</option>
-        <option value="gym">Academias</option>
-        <option value="school">Escolas</option>
-        <option value="hospital">Hospitais</option>
-        <option value="pharmacy">Farmácias</option>
+        <option value="restaurant">🍽 Restaurantes</option>
+        <option value="gym">🏋️ Academias</option>
+        <option value="school">🏫 Escolas</option>
+        <option value="hospital">🏥 Hospitais</option>
+        <option value="pharmacy">💊 Farmácias</option>
       </select>
 
       <button onclick="buscarLocais()">Buscar</button>
     </div>
 
-    <!-- Mapa -->
+    <!-- MAPA -->
     <div id="map"></div>
 
   </div>
 
-  <!-- Google Maps API + Places -->
+  <!-- GOOGLE MAPS + PLACES -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDhOfl-4jQOTDMwsTbDzWGcxfBayJQyIM&libraries=places&callback=initMap"
     async
@@ -95,7 +165,7 @@
 
       const infoWindow = new google.maps.InfoWindow();
 
-      // Geolocalização do usuário
+      // GEOLOCALIZAÇÃO
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -123,7 +193,7 @@
         );
       }
 
-      // GeoJSON
+      // GEOJSON
       const geojson = {
         type: "FeatureCollection",
         features: [
@@ -153,7 +223,7 @@
 
     function buscarLocais() {
 
-      // Remove marcadores antigos
+      // Limpa marcadores antigos
       markers.forEach(marker => marker.setMap(null));
       markers = [];
 
