@@ -41,9 +41,10 @@
 
     // Centro padrão (caso o usuário negue a localização)
     const centroPadrao = {
-      lat: -23.5505,
-      lng: -46.6333
+      lat: -19.922269,
+      lng: -43.99264
     };
+    
 
     // Criar mapa inicialmente com centro padrão
     const map = new google.maps.Map(document.getElementById("map"), {
@@ -74,7 +75,7 @@
             title: "Sua localização"
           });
 
-          infoWindow.setContent("📍 Você está aqui");
+          infoWindow.setContent("📍 Você está aqui aaaaaaaaaaaaaaaaaaaaaaa");
           infoWindow.open(map, marker);
         },
 
@@ -101,7 +102,7 @@
           "type": "Feature",
           "geometry": {
             "type": "Point",
-            "coordinates": [-46.65, -23.55]
+            "coordinates": [-19.922269,-43.99264]
           },
           "properties": {
             "name": "Ponto GeoJSON"
