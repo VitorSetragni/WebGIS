@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="pt-BR">
+<head>
   <meta charset="UTF-8">
   <title>WebGIS - Google Maps API</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
+    /* CSS */
     html, body {
       margin: 0;
       padding: 0;
@@ -23,32 +25,104 @@
   </style>
 </head>
 <body>
-    <div id="map"></div>
-    <!-- The callback parameter is required, so we use console.debug as a noop -->
-    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDhOfl-4jQOTDMwsTbDzWGcxfBayJQyIM&callback=console.debug&libraries=maps,marker&v=beta">
-    </script>
-    <script>
-        
-    </script>
-    <style>
-      /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
-      gmp-map {
-        height: 100%;
-      }
 
-      /* Optional: Makes the sample page fill the window. */
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
+  <!-- Div do mapa -->
+  <div id="map"></div>
+
+  <!-- Google Maps API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDhOfl-4jQOTDMwsTbDzWGcxfBayJQyIM&callback=initMap"
+    async
+    defer>
+  </script>
+
+  <script>
+  function initMap() {
+
+    // Centro padrão (caso o usuário negue a localização)
+    const centroPadrao = {
+      lat: -23.5505,
+      lng: -46.6333
+    };
+
+    // Criar mapa inicialmente com centro padrão
+    const map = new google.maps.Map(document.getElementById("map"), {
+      center: centroPadrao,
+      zoom: 12,
+      mapTypeId: "roadmap"
+    });
+
+    const infoWindow = new google.maps.InfoWindow();
+
+    // Verifica se o navegador suporta geolocalização
+    if (navigator.geolocation) {
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const posUsuario = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+
+          // Centraliza o mapa no usuário
+          map.setCenter(posUsuario);
+
+          // Marcador do usuário
+          const marker = new google.maps.Marker({
+            position: posUsuario,
+            map: map,
+            title: "Sua localização"
+          });
+
+          infoWindow.setContent("📍 Você está aqui");
+          infoWindow.open(map, marker);
+        },
+
+        () => {
+          // Erro ou permissão negada
+          infoWindow.setPosition(centroPadrao);
+          infoWindow.setContent("Não foi possível obter sua localização");
+          infoWindow.open(map);
+        }
+      );
+
+    } else {
+      // Navegador não suporta
+      infoWindow.setPosition(centroPadrao);
+      infoWindow.setContent("Geolocalização não suportada pelo navegador");
+      infoWindow.open(map);
+    }
+
+    // ===== GeoJSON continua funcionando =====
+    const geojson = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-46.65, -23.55]
+          },
+          "properties": {
+            "name": "Ponto GeoJSON"
+          }
+        }
+      ]
+    };
+
+    map.data.addGeoJson(geojson);
+
+    map.data.setStyle({
+      icon: {
+        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
       }
-    </style>
-  </head>
-  <body>
-    <gmp-map center="40.12150192260742,-100.45039367675781" zoom="4" map-id="DEMO_MAP_ID">
-      <gmp-advanced-marker position="40.12150192260742,-100.45039367675781" title="My location"></gmp-advanced-marker>
-    </gmp-map>
-  </body>
+    });
+
+    map.data.addListener("click", function(event) {
+      alert("GeoJSON: " + event.feature.getProperty("name"));
+    });
+  }
+</script>
+
+</body>
 </html>
